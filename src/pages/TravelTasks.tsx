@@ -12,12 +12,14 @@ const categories: { key: TaskCategoryKey; color: string }[] = [
 ];
 
 export default function TravelTasks() {
-  const { tasks, activeDate, addTask, toggleTask, deleteTask, setActiveDate, resetDailyTasks } = useAppStore();
+  const { activeDate, getTasksByDate, addTask, toggleTask, deleteTask, setActiveDate, resetDailyTasks } = useAppStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskCategory, setNewTaskCategory] = useState<TaskCategoryKey>('photo');
   const [showCalendar, setShowCalendar] = useState(false);
   const [dateInput, setDateInput] = useState(activeDate);
+
+  const tasks = getTasksByDate(activeDate);
 
   const completedCount = tasks.filter((t) => t.completed).length;
   const totalCount = tasks.length;
@@ -102,7 +104,7 @@ export default function TravelTasks() {
               </button>
             </div>
             <p className="text-sm text-amber-700/70 mt-2">
-              当前：{formatDate(activeDate)} · 切换日期会重置任务
+              当前：{formatDate(activeDate)} · 每天的任务独立保存
             </p>
           </div>
         )}

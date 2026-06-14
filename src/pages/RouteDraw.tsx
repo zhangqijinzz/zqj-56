@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Plus, Trash2, Dice5, RotateCcw, Clock } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore } from '@/store/useAppStore';
@@ -22,6 +22,17 @@ export default function RouteDraw() {
   const [routeCount, setRouteCount] = useState(3);
   const [isDrawing, setIsDrawing] = useState(false);
   const [displayedRoute, setDisplayedRoute] = useState<string[] | null>(null);
+  
+  const drawIntervalRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (drawIntervalRef.current) {
+        clearInterval(drawIntervalRef.current);
+        drawIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   const today = new Date().toISOString().split('T')[0];
   const isTodayRoute = currentRouteDate === today;
@@ -48,17 +59,24 @@ export default function RouteDraw() {
   const handleDrawRoute = () => {
     if (attractions.length === 0) return;
     
+    if (drawIntervalRef.current) {
+      clearInterval(drawIntervalRef.current);
+    }
+    
     setIsDrawing(true);
     
     let count = 0;
-    const interval = setInterval(() => {
+    drawIntervalRef.current = window.setInterval(() => {
       const shuffled = [...attractions].sort(() => Math.random() - 0.5);
       const selected = shuffled.slice(0, Math.min(routeCount, attractions.length));
       setDisplayedRoute(selected.map((a) => a.id));
       count++;
       
       if (count >= 15) {
-        clearInterval(interval);
+        if (drawIntervalRef.current) {
+          clearInterval(drawIntervalRef.current);
+          drawIntervalRef.current = null;
+        }
         const finalRoute = generateRoute(routeCount);
         setDisplayedRoute(finalRoute);
         setIsDrawing(false);

@@ -49,7 +49,7 @@ export interface AppState {
   attractions: Attraction[];
   currentRoute: string[] | null;
   currentRouteDate: string | null;
-  tasks: TravelTask[];
+  tasksByDate: Record<string, TravelTask[]>;
   activeDate: string;
   journals: JournalEntry[];
   
@@ -59,11 +59,12 @@ export interface AppState {
   deleteAttraction: (id: string) => void;
   generateRoute: (count: number) => string[] | null;
   clearRoute: () => void;
-  addTask: (task: Omit<TravelTask, 'id' | 'completed' | 'isCustom'>) => void;
-  toggleTask: (taskId: string) => void;
-  deleteTask: (taskId: string) => void;
+  getTasksByDate: (date: string) => TravelTask[];
+  addTask: (task: Omit<TravelTask, 'id' | 'completed' | 'isCustom'>, date?: string) => void;
+  toggleTask: (taskId: string, date?: string) => void;
+  deleteTask: (taskId: string, date?: string) => void;
   setActiveDate: (date: string) => void;
-  resetDailyTasks: () => void;
+  resetDailyTasks: (date?: string) => void;
   addJournal: (journal: Omit<JournalEntry, 'id' | 'createdAt' | 'updatedAt'>) => string;
   updateJournal: (id: string, data: Partial<JournalEntry>) => void;
   deleteJournal: (id: string) => void;

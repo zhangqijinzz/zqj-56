@@ -48,13 +48,22 @@ export default function JournalEditor() {
     const files = e.target.files;
     if (!files) return;
 
-    Array.from(files).forEach((file) => {
-      if (photos.length >= 9) return;
-      
+    const remainingSlots = 9 - photos.length;
+    if (remainingSlots <= 0) {
+      e.target.value = '';
+      return;
+    }
+
+    const filesToProcess = Array.from(files).slice(0, remainingSlots);
+    
+    filesToProcess.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (event) => {
         const result = event.target?.result as string;
-        setPhotos((prev) => [...prev, result]);
+        setPhotos((prev) => {
+          if (prev.length >= 9) return prev;
+          return [...prev, result];
+        });
       };
       reader.readAsDataURL(file);
     });

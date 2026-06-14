@@ -18,6 +18,16 @@ const initializeDailyTasks = (): TravelTask[] => {
   }));
 };
 
+const getTasksForDate = (
+  tasksByDate: Record<string, TravelTask[]>,
+  date: string
+): TravelTask[] => {
+  if (tasksByDate[date]) {
+    return tasksByDate[date];
+  }
+  return initializeDailyTasks();
+};
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -25,7 +35,9 @@ export const useAppStore = create<AppState>()(
       attractions: [],
       currentRoute: null,
       currentRouteDate: null,
-      tasks: initializeDailyTasks(),
+      tasksByDate: {
+        [getTodayString()]: initializeDailyTasks(),
+      },
       activeDate: getTodayString(),
       journals: [],
 
@@ -79,53 +91,85 @@ export const useAppStore = create<AppState>()(
 
       clearRoute: () => set({ currentRoute: null, currentRouteDate: null }),
 
-      addTask: (task) =>
-        set((state) => ({
-          tasks: [
-            ...state.tasks,
-            {
-              ...task,
-              id: generateId(),
-              completed: false,
-              isCustom: true,
-            },
-          ],
-        })),
-
-      toggleTask: (taskId) =>
-        set((state) => ({
-          tasks: state.tasks.map((t) =>
-            t.id === taskId
-              ? {
-                  ...t,
-                  completed: !t.completed,
-                  completedAt: !t.completed ? Date.now() : undefined,
-                }
-              : t
-          ),
-        })),
-
-      deleteTask: (taskId) =>
-        set((state) => ({
-          tasks: state.tasks.filter((t) => t.id !== taskId),
-        })),
-
-      setActiveDate: (date) => {
-        const currentDate = get().activeDate;
-        if (date !== currentDate) {
-          set({
-            activeDate: date,
-            tasks: initializeDailyTasks(),
-          });
-        } else {
-          set({ activeDate: date });
-        }
+      getTasksByDate: (date: string) => {
+        return getTasksForDate(get().tasksByDate, date);
       },
 
-      resetDailyTasks: () =>
-        set({
-          tasks: initializeDailyTasks(),
-        }),
+      addTask: (task, date) => {
+        const targetDate = date || get().activeDate;
+        set((state) => {
+          const currentTasks = getTasksForDate(state.tasksByDate, targetDate);
+          const newTask: TravelTask = {
+            ...task,
+            id: generateId(),
+            completed: false,
+            isCustom: true,
+          };
+          return {
+            tasksByDate: {
+              ...state.tasksByDate,
+              [targetDate]: [...currentTasks, newTask],
+            },
+          };
+        });
+      },
+
+      toggleTask: (taskId, date) => {
+        const targetDate = date || get().activeDate;
+        set((state) => {
+          const currentTasks = getTasksForDate(state.tasksByDate, targetDate);
+          return {
+            tasksByDate: {
+              ...state.tasksByDate,
+              [targetDate]: currentTasks.map((t) =>
+                t.id === taskId
+                  ? {
+                      ...t,
+                      completed: !t.completed,
+                      completedAt: !t.completed ? Date.now() : undefined,
+                    }
+                  : t
+              ),
+            },
+          };
+        });
+      },
+
+      deleteTask: (taskId, date) => {
+        const targetDate = date || get().activeDate;
+        set((state) => {
+          const currentTasks = getTasksForDate(state.tasksByDate, targetDate);
+          return {
+            tasksByDate: {
+              ...state.tasksByDate,
+              [targetDate]: currentTasks.filter((t) => t.id !== taskId),
+            },
+          };
+        });
+      },
+
+      setActiveDate: (date) => {
+        set((state) => {
+          const newTasksByDate = { ...state.tasksByDate };
+          if (!newTasksByDate[date]) {
+            newTasksByDate[date] = initializeDailyTasks();
+          }
+          return {
+            activeDate: date,
+            tasksByDate: newTasksByDate,
+          };
+        });
+      },
+
+      resetDailyTasks: (date) => {
+        const targetDate = date || get().activeDate;
+        set((state) => ({
+          tasksByDate: {
+            ...state.tasksByDate,
+            [targetDate]: initializeDailyTasks(),
+          },
+        }));
+      },
 
       addJournal: (journal) => {
         const id = generateId();
@@ -165,14 +209,23 @@ export const useAppStore = create<AppState>()(
         attractions: state.attractions,
         currentRoute: state.currentRoute,
         currentRouteDate: state.currentRouteDate,
-        tasks: state.tasks,
+        tasksByDate: state.tasksByDate,
         activeDate: state.activeDate,
         journals: state.journals,
       }),
       onRehydrateStorage: () => (state) => {
-        if (state && state.activeDate !== getTodayString()) {
-          state.activeDate = getTodayString();
-          state.tasks = initializeDailyTasks();
+        if (state) {
+          const today = getTodayString();
+          if (state.activeDate !== today) {
+            state.activeDate = today;
+          }
+          if (!state.tasksByDate) {
+            state.tasksByDate = {
+              [today]: initializeDailyTasks(),
+            };
+          } else if (!state.tasksByDate[today]) {
+            state.tasksByDate[today] = initializeDailyTasks();
+          }
         }
       },
     }
